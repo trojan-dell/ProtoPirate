@@ -1,7 +1,7 @@
 name: Build ProtoPirate FAP
 
 on:
-  workflow_dispatch:   # запуск вручну
+  workflow_dispatch:
 
 jobs:
   build:
@@ -18,14 +18,25 @@ jobs:
       - name: Встановити uFBT
         run: pip install ufbt
 
+      - name: Показати вміст перед збіркою (для діагностики)
+        run: ls -laR
+
       - name: Зібрати .fap
         run: ufbt build
 
-      - name: Знайти зібраний файл (діагностика)
-        run: find . -name "*.fap" -ls
+      - name: Показати вміст після збірки
+        run: |
+          echo "=== Вміст поточної папки ==="
+          ls -la
+          echo "=== Вміст усіх підпапок (з .fap) ==="
+          find . -name "*.fap" -type f
+          echo "=== Вміст усіх підпапок (з .elf) ==="
+          find . -name "*.elf" -type f
+          echo "=== Вміст усіх підпапок (з .out) ==="
+          find . -name "*.out" -type f
 
-      - name: Завантажити артефакт
+      - name: Завантажити артефакт (якщо знайдеться)
         uses: actions/upload-artifact@v4
         with:
-          name: protopirate-fap
-          path: "**/*.fap"   # шукає .fap у будь-якій вкладеній папці
+          name: protopirate-build
+          path: "**/*"   # завантажимо ВСІ файли, щоб побачити, що там є
