@@ -1,4 +1,4 @@
-name: Build ProtoPirate FAP
+name: ProtoPirate TX FAP
 
 on:
   workflow_dispatch:
@@ -7,18 +7,50 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    strategy:
+      matrix:
+        include:
+          - name: Official Release
+            sdk-channel: release
+            fap-name: ofw_release
+
+          - name: Official Dev
+            sdk-channel: dev
+            fap-name: ofw_dev
+
+          - name: Unleashed Release
+            sdk-index-url: https://up.unleashedflip.com/directory.json
+            sdk-channel: release
+            fap-name: unleashed_release
+
+          - name: Momentum Release
+            sdk-index-url: https://up.momentum-fw.dev/firmware/directory.json
+            sdk-channel: release
+            fap-name: momentum_release
+
+    name: Build ${{ matrix.name }}
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
-      - name: Build ProtoPirate
-        uses: flipperdevices/flipperzero-ufbt-action@v0.1.3
+      - name: Enable TX / Emulate
+        run: |
+          sed -i 's/settings->emulate_feature_enabled = false;/settings->emulate_feature_enabled = true;/' helpers/protopirate_settings.c
+
+          sed -i '/protopirate_settings_load(&settings);/a\    settings.emulate_feature_enabled = true;' protopirate_app.c
+
+      - name: Build FAP
+        uses: flipperdevices/flipperzero-ufbt-action@v0.1.2
         id: build-app
         with:
-          sdk-channel: release
+          sdk-channel: ${{ matrix.sdk-channel }}
+          sdk-index-url: ${{ matrix.sdk-index-url }}
 
       - name: Upload FAP
         uses: actions/upload-artifact@v4
         with:
-          name: ProtoPirate-FAP
+          name: ProtoPirate_TX_${{ matrix.fap-name }}
           path: ${{ steps.build-app.outputs.fap-artifacts }}
